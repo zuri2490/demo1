@@ -1,0 +1,1420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMART CITY - Sistema de Monitoreo Aéreo</title>
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.119/Build/Cesium/Cesium.js"></script>
+    <link href="https://cesium.com/downloads/cesiumjs/releases/1.119/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+    <style>
+        /* Estilos básicos - pantalla completa */
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        
+        #cesiumContainer {
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* Controles simplificados */
+        #controls {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(25, 25, 35, 0.95);
+            padding: 15px;
+            border-radius: 10px;
+            width: 250px;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: white;
+        }
+        
+        #controls h3 {
+            margin: 0 0 15px 0;
+            text-align: center;
+            color: #4FC3F7;
+            font-size: 1.2rem;
+        }
+        
+        .controls-section {
+            margin-bottom: 15px;
+        }
+        
+        .section-title {
+            font-size: 0.9rem;
+            color: #4FC3F7;
+            margin-bottom: 8px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .control-btn {
+            display: block;
+            width: 100%;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        
+        /* Botón activo - AZUL */
+        .btn-active {
+            background-color: #2196F3;
+            color: white;
+        }
+        
+        .btn-active:hover {
+            background-color: #0b7dda;
+        }
+        
+        /* Botón inactivo - ROJO */
+        .btn-inactive {
+            background-color: #f44336;
+            color: white;
+        }
+        
+        .btn-inactive:hover {
+            background-color: #d32f2f;
+        }
+        
+        /* Botón de tour */
+        .tour-btn {
+            background: linear-gradient(90deg, #FF9800, #FF5722);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            margin-bottom: 10px;
+            transition: transform 0.2s;
+        }
+        
+        .tour-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        /* Controles avanzados del dron */
+        #drone-controls {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(25, 25, 35, 0.95);
+            padding: 15px;
+            border-radius: 10px;
+            width: 300px;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: white;
+        }
+        
+        #drone-controls h3 {
+            margin: 0 0 15px 0;
+            text-align: center;
+            color: #FF9800;
+            font-size: 1.2rem;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+        
+        .control-value {
+            color: #4FC3F7;
+            font-weight: bold;
+        }
+        
+        .slider-container {
+            position: relative;
+            height: 25px;
+        }
+        
+        .slider {
+            width: 100%;
+            height: 8px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: rgba(255,255,255,0.1);
+            outline: none;
+            border-radius: 4px;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4FC3F7;
+            cursor: pointer;
+        }
+        
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4FC3F7;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .small-btn {
+            padding: 8px;
+            font-size: 0.8rem;
+        }
+        
+        /* Información simple */
+        #info {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            background: rgba(25, 25, 35, 0.95);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            max-width: 300px;
+            font-size: 0.9rem;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        #info h4 {
+            margin: 0 0 10px 0;
+            color: #4FC3F7;
+        }
+        
+        /* Leyenda de colores hipsométricos */
+        .legend {
+            margin-top: 10px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 10px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+            font-size: 0.8rem;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+            border-radius: 3px;
+        }
+        
+        /* Panel de control del tour */
+        #tour-controls {
+            position: absolute;
+            top: 15px;
+            left: 280px;
+            background: rgba(25, 25, 35, 0.95);
+            padding: 15px;
+            border-radius: 10px;
+            width: 250px;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: white;
+            display: none;
+        }
+        
+        #tour-controls h4 {
+            margin: 0 0 10px 0;
+            color: #FF9800;
+            text-align: center;
+        }
+        
+        .tour-status {
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            text-align: center;
+            color: #4FC3F7;
+        }
+        
+        .tour-progress {
+            width: 100%;
+            height: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 5px;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+        
+        .tour-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4FC3F7, #2196F3);
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        .tour-step {
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            padding: 5px;
+            border-radius: 4px;
+            background: rgba(255,255,255,0.05);
+        }
+        
+        .tour-step.active {
+            background: rgba(255, 152, 0, 0.2);
+            border-left: 3px solid #FF9800;
+        }
+        
+        /* Banner SMART CITY */
+        #smartCityBanner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(25, 25, 35, 0.95);
+            color: white;
+            padding: 30px 50px;
+            border-radius: 15px;
+            z-index: 1002;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border: 2px solid #4FC3F7;
+            text-align: center;
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        #smartCityBanner h1 {
+            font-size: 3rem;
+            margin: 0;
+            color: #4FC3F7;
+            text-shadow: 0 2px 10px rgba(79, 195, 247, 0.5);
+        }
+        
+        #smartCityBanner h2 {
+            font-size: 1.5rem;
+            margin: 10px 0 0 0;
+            color: #FF9800;
+        }
+        
+        /* Efectos de animación */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .start-btn {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            z-index: 1001;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.4);
+        }
+        
+        .start-btn:hover {
+            background: #0b7dda;
+        }
+        
+        /* Indicador de modo dron */
+        .drone-indicator {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 152, 0, 0.9);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            z-index: 1000;
+            display: none;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .status-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+            font-size: 0.8rem;
+        }
+        
+        .status-item {
+            background: rgba(255,255,255,0.05);
+            padding: 8px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        .status-value {
+            display: block;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #4FC3F7;
+        }
+        
+        .status-label {
+            font-size: 0.7rem;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div id="cesiumContainer"></div>
+    
+    <!-- Indicador de modo dron -->
+    <div class="drone-indicator" id="droneIndicator">
+        🚁 DRONE EN VUELO
+    </div>
+    
+    <!-- Banner SMART CITY -->
+    <div id="smartCityBanner">
+        <h1>SMART CITY</h1>
+        <h2>Sistema de Monitoreo Aéreo</h2>
+    </div>
+    
+    <!-- Botón de inicio simple -->
+    <button class="start-btn" id="startBtn">INICIAR PRESENTACIÓN</button>
+    
+    <!-- Controles principales -->
+    <div id="controls" style="display: none;">
+        <h3>CONTROL DE CAPAS</h3>
+        
+        <button class="tour-btn" id="tourBtn">
+            🚁 INICIAR RECORRIDO DRONE
+        </button>
+        
+        <div class="controls-section">
+            <div class="section-title">COMUNICACIONES</div>
+            <div id="comms-buttons"></div>
+        </div>
+        
+        <div class="controls-section">
+            <div class="section-title">INFRAESTRUCTURA</div>
+            <div id="infra-buttons"></div>
+        </div>
+        
+        <div class="controls-section">
+            <div class="section-title">MOVILIDAD</div>
+            <div id="mobility-buttons"></div>
+        </div>
+    </div>
+    
+    <!-- Controles avanzados del dron -->
+    <div id="drone-controls" style="display: none;">
+        <h3>CONTROLES DE DRONE</h3>
+        
+        <div class="control-group">
+            <div class="control-label">
+                <span>Altura de vuelo</span>
+                <span class="control-value" id="heightValue">100 m</span>
+            </div>
+            <div class="slider-container">
+                <input type="range" min="50" max="500" value="100" class="slider" id="heightSlider">
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <div class="control-label">
+                <span>Inclinación de cámara</span>
+                <span class="control-value" id="pitchValue">30°</span>
+            </div>
+            <div class="slider-container">
+                <input type="range" min="0" max="90" value="30" class="slider" id="pitchSlider">
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <div class="control-label">
+                <span>Tiempo de recorrido</span>
+                <span class="control-value" id="durationValue">200 s</span>
+            </div>
+            <div class="slider-container">
+                <input type="range" min="10" max="600" value="200" class="slider" id="durationSlider">
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <div class="control-label">
+                <span>Velocidad de vuelo</span>
+                <span class="control-value" id="speedValue">Medio</span>
+            </div>
+            <div class="slider-container">
+                <input type="range" min="1" max="10" value="5" class="slider" id="speedSlider">
+            </div>
+        </div>
+        
+        <div class="button-group">
+            <button class="control-btn btn-active small-btn" id="pauseBtn">
+                ⏸️ PAUSAR
+            </button>
+            <button class="control-btn btn-active small-btn" id="restartBtn">
+                🔄 REINICIAR
+            </button>
+            <button class="control-btn btn-active small-btn" id="resetBtn">
+                🔄 VALORES POR DEFECTO
+            </button>
+            <button class="control-btn btn-inactive small-btn" id="stopBtn">
+                ⏹️ DETENER
+            </button>
+        </div>
+    </div>
+    
+    <!-- Panel de control del tour -->
+    <div id="tour-controls">
+        <h4>RECORRIDO DE DRONE</h4>
+        <div class="tour-status" id="tourStatus">Preparando dron...</div>
+        <div class="tour-progress">
+            <div class="tour-progress-bar" id="tourProgress"></div>
+        </div>
+        <div class="tour-steps">
+            <div class="tour-step" id="step1">1. DRONE COMUNICACIONES</div>
+            <div class="tour-step" id="step2">2. DRONE INFRAESTRUCTURA</div>
+            <div class="tour-step" id="step3">3. DRONE MOVILIDAD</div>
+            <div class="tour-step" id="step4">4. VISTA GENERAL</div>
+        </div>
+        
+        <div class="status-info">
+            <div class="status-item">
+                <span class="status-value" id="currentHeight">100</span>
+                <span class="status-label">ALTURA (m)</span>
+            </div>
+            <div class="status-item">
+                <span class="status-value" id="currentSpeed">0</span>
+                <span class="status-label">VELOCIDAD (km/h)</span>
+            </div>
+            <div class="status-item">
+                <span class="status-value" id="currentPitch">30</span>
+                <span class="status-label">INCLINACIÓN (°)</span>
+            </div>
+            <div class="status-item">
+                <span class="status-value" id="currentTime">0</span>
+                <span class="status-label">TIEMPO (s)</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Información simple -->
+    <div id="info" style="display: none;">
+        <h4>SMART CITY 3D - MODO DRONE</h4>
+        <div class="status-info">
+            <div class="status-item">
+                <span class="status-value" id="infoHeight">100</span>
+                <span class="status-label">ALTURA</span>
+            </div>
+            <div class="status-item">
+                <span class="status-value" id="infoSpeed">0</span>
+                <span class="status-label">VELOCIDAD</span>
+            </div>
+        </div>
+        <p>Capas activas: <span id="activeCount">0</span>/16</p>
+        <p>Duración del recorrido: <span id="infoDuration">200</span> segundos</p>
+        
+        <!-- Leyenda de colores hipsométricos -->
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #006400;"></div>
+                <span>Altura baja (5-8m)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #32CD32;"></div>
+                <span>Altura media-baja (8-11m)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #FFD700;"></div>
+                <span>Altura media (11-14m)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #FF8C00;"></div>
+                <span>Altura media-alta (14-17m)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #8B0000;"></div>
+                <span>Altura alta (17-20m)</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===================== CONFIGURACIÓN =====================
+        Cesium.Ion.defaultAccessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJkYTZkZDQ5Mi00ZmRlLTQzNWYtOTJkNS01ZDg5Yjk2YTdjZGYiLCJpZCI6MjUwNzU5LCJpYXQiOjE3Mjk4NzA5MzJ9.0zST0JTvrQSinOeD831E3fP8U_V8Yq9ecUwalap2pQ8";
+
+        // Panel de errores visible en pantalla
+        function showError(msg) {
+            console.error(msg);
+            let errorDiv = document.getElementById('error-panel');
+            if (!errorDiv) {
+                errorDiv = document.createElement('div');
+                errorDiv.id = 'error-panel';
+                errorDiv.style.cssText = 'position:fixed;bottom:10px;left:10px;background:rgba(200,0,0,0.9);color:white;padding:15px;border-radius:8px;z-index:9999;max-width:500px;max-height:300px;overflow-y:auto;font-size:13px;font-family:monospace;';
+                document.body.appendChild(errorDiv);
+            }
+            errorDiv.innerHTML += '<p style="margin:5px 0;border-bottom:1px solid rgba(255,255,255,0.3);padding-bottom:5px;">' + msg + '</p>';
+        }
+
+        // Capturar errores globales
+        window.onerror = function(message, source, lineno, colno, error) {
+            showError('ERROR JS [línea ' + lineno + ']: ' + message);
+        };
+
+        // Verificar que Cesium se cargó correctamente
+        if (typeof Cesium === 'undefined') {
+            showError('CESIUM NO SE CARGÓ. Revisa tu conexión a internet o la URL del CDN.');
+        }
+
+        let viewer;
+        try {
+            // Crear visor básico
+            viewer = new Cesium.Viewer("cesiumContainer", {
+                shouldAnimate: true,
+                baseLayerPicker: false,
+                homeButton: false,
+                sceneModePicker: false,
+                animation: false,
+                timeline: false,
+                fullscreenButton: true,
+                infoBox: false,
+                selectionIndicator: false
+            });
+            console.log("Cesium Viewer creado correctamente");
+        } catch (e) {
+            showError('ERROR al crear Cesium Viewer: ' + e.message);
+        }
+
+        // ===================== VARIABLES GLOBALES =====================
+        // Puntos de inicio y fin para el recorrido de drone
+        const START_POINT = {
+            latitude: 19.491477,
+            longitude: -99.236949,
+            height: 100
+        };
+        
+        const END_POINT = {
+            latitude: 19.506326,
+            longitude: -99.236753,
+            height: 100
+        };
+        
+        // Configuración del dron (valores ajustables)
+        let DRONE_CONFIG = {
+            height: 100, // metros
+            pitch: -30, // grados (ángulo de inclinación)
+            duration: 200, // segundos para recorrer la distancia
+            speedMultiplier: 5, // 1-10 escala de velocidad
+            fov: 60 // grados de campo de visión
+        };
+        
+        // Variables de estado
+        const layers = [
+            // Comunicaciones
+            { id: 3283155, name: "Antena Telefónica", category: "comms", icon: "📡" },
+            { id: 3283165, name: "Cabina WiFi", category: "comms", icon: "📶" },
+            { id: 3283172, name: "Cámaras", category: "comms", icon: "📹" },
+            { id: 3286333, name: "Cableado", category: "comms", icon: "🔌" },
+            { id: 3286327, name: "Teléfono Público", category: "comms", icon: "📞" },
+            
+            // Infraestructura
+            { id: 3258058, name: "Construcciones", category: "infra", icon: "🏢" },
+            { id: 3286119, name: "Coladeras", category: "infra", icon: "⛲" },
+            { id: 3286286, name: "Luminarias", category: "infra", icon: "💡" },
+            { id: 3286323, name: "Registro", category: "infra", icon: "🔧" },
+            { id: 3283158, name: "Base de Taxi", category: "infra", icon: "🚕" },
+            
+            // Movilidad
+            { id: 3286311, name: "Paso Peatonal", category: "mobility", icon: "🚶" },
+            { id: 3286293, name: "Parada Bus", category: "mobility", icon: "🚌" },
+            { id: 3286303, name: "Parquímetro", category: "mobility", icon: "🅿️" },
+            { id: 3286318, name: "Señalamiento", category: "mobility", icon: "🚦" },
+            { id: 3283180, name: "Espectacular", category: "mobility", icon: "📢" },
+            
+            // Ambiental
+            { id: 3258160, name: "Árboles", category: "mobility", icon: "🌳" }
+        ];
+
+        const dataSources = [];
+        const tilesetInstances = [];
+        let activeLayerCount = 0;
+        let isTourRunning = false;
+        let isPaused = false;
+        let currentTourStep = 0;
+        let droneInterval;
+        let currentDronePosition = { ...START_POINT };
+        let currentSpeed = 0;
+        let elapsedTime = 0;
+        let startTime = 0;
+        let continueDronePath = null; // Referencia global para reanudar vuelo
+
+        // ===================== FUNCIONES BÁSICAS =====================
+        function getRandomHeight(min, max) {
+            return Math.random() * (max - min) + min;
+        }
+
+        function getHipsometricColor(height) {
+            const colors = [
+                { min: 5, max: 8, color: Cesium.Color.fromCssColorString('#006400') },
+                { min: 8, max: 11, color: Cesium.Color.fromCssColorString('#32CD32') },
+                { min: 11, max: 14, color: Cesium.Color.fromCssColorString('#FFD700') },
+                { min: 14, max: 17, color: Cesium.Color.fromCssColorString('#FF8C00') },
+                { min: 17, max: 20, color: Cesium.Color.fromCssColorString('#8B0000') }
+            ];
+            
+            for (const range of colors) {
+                if (height >= range.min && height <= range.max) {
+                    return range.color.withAlpha(0.7);
+                }
+            }
+            
+            return Cesium.Color.fromCssColorString('#808080').withAlpha(0.7);
+        }
+
+        function applyHeights(dataSource, assetId) {
+            const entities = dataSource.entities.values;
+            for (const entity of entities) {
+                if (entity.polygon && assetId === 3258058) {
+                    const height = getRandomHeight(5, 20);
+                    entity.polygon.extrudedHeight = new Cesium.ConstantProperty(height);
+                    
+                    const color = getHipsometricColor(height);
+                    entity.polygon.material = new Cesium.ColorMaterialProperty(color);
+                    
+                    if (!entity.label) {
+                        entity.label = new Cesium.LabelGraphics({
+                            text: height.toFixed(1) + 'm',
+                            font: '12px Arial',
+                            style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+                            outlineWidth: 2,
+                            verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+                            pixelOffset: new Cesium.Cartesian2(0, -10),
+                            show: false
+                        });
+                    }
+                }
+            }
+        }
+
+        // ===================== GESTIÓN DE CAPAS =====================
+        async function loadLayers() {
+            if (!viewer) {
+                showError('No se puede cargar capas: el visor no se inicializó.');
+                return;
+            }
+            
+            try {
+                console.log("Cargando tileset principal (ID: 2793336)...");
+                const tileset = await Cesium.Cesium3DTileset.fromIonAssetId(2793336);
+                tileset.show = true;
+                viewer.scene.primitives.add(tileset);
+                tilesetInstances.push(tileset);
+                console.log("Tileset principal cargado correctamente");
+            } catch (error) {
+                showError("Error cargando tileset principal (ID: 2793336): " + error.message + ". Verifica que tu token de Cesium Ion sea válido y que el asset exista.");
+            }
+
+            let loadedCount = 0;
+            let failedCount = 0;
+
+            for (const layer of layers) {
+                try {
+                    const resource = await Cesium.IonResource.fromAssetId(layer.id);
+                    const dataSource = await Cesium.KmlDataSource.load(resource);
+                    
+                    applyHeights(dataSource, layer.id);
+                    dataSource.show = false;
+                    viewer.dataSources.add(dataSource);
+                    
+                    dataSources.push({
+                        source: dataSource,
+                        name: layer.name,
+                        category: layer.category,
+                        icon: layer.icon,
+                        button: null
+                    });
+                    
+                    createLayerButton(layer);
+                    loadedCount++;
+                } catch (error) {
+                    failedCount++;
+                    showError("Error cargando capa '" + layer.name + "' (ID: " + layer.id + "): " + error.message);
+                }
+            }
+            
+            console.log("Capas cargadas: " + loadedCount + "/" + layers.length + " (fallidas: " + failedCount + ")");
+            if (failedCount > 0) {
+                showError("Se cargaron " + loadedCount + " de " + layers.length + " capas. " + failedCount + " fallaron. Tu token de Cesium Ion puede estar expirado o los assets fueron eliminados.");
+            }
+        }
+
+        function createLayerButton(layer) {
+            const containerId = layer.category + "-buttons";
+            const container = document.getElementById(containerId);
+            
+            if (!container) return;
+            
+            const button = document.createElement('button');
+            button.className = 'control-btn btn-inactive';
+            button.textContent = `${layer.icon} ${layer.name}`;
+            
+            button.onclick = function() {
+                toggleLayer(layer.name, button);
+            };
+            
+            container.appendChild(button);
+            
+            const dataSourceObj = dataSources.find(ds => ds.name === layer.name);
+            if (dataSourceObj) {
+                dataSourceObj.button = button;
+            }
+        }
+
+        function toggleLayer(layerName, button) {
+            const dataSourceObj = dataSources.find(ds => ds.name === layerName);
+            if (dataSourceObj) {
+                dataSourceObj.source.show = !dataSourceObj.source.show;
+                
+                if (dataSourceObj.source.show) {
+                    button.className = 'control-btn btn-active';
+                    activeLayerCount++;
+                    
+                    if (layerName === "Construcciones") {
+                        const entities = dataSourceObj.source.entities.values;
+                        for (const entity of entities) {
+                            if (entity.label) {
+                                entity.label.show = true;
+                            }
+                        }
+                    }
+                } else {
+                    button.className = 'control-btn btn-inactive';
+                    activeLayerCount--;
+                    
+                    if (layerName === "Construcciones") {
+                        const entities = dataSourceObj.source.entities.values;
+                        for (const entity of entities) {
+                            if (entity.label) {
+                                entity.label.show = false;
+                            }
+                        }
+                    }
+                }
+                
+                document.getElementById('activeCount').textContent = activeLayerCount;
+            }
+        }
+
+        // ===================== SISTEMA DE DRONE AVANZADO =====================
+        function startDroneTour() {
+            if (isTourRunning) return;
+            
+            isTourRunning = true;
+            isPaused = false;
+            currentTourStep = 0;
+            elapsedTime = 0;
+            
+            document.getElementById('tour-controls').style.display = 'block';
+            document.getElementById('droneIndicator').style.display = 'block';
+            document.getElementById('tourBtn').textContent = 'DRONE EN CURSO...';
+            document.getElementById('tourBtn').disabled = true;
+            document.getElementById('pauseBtn').textContent = '⏸️ PAUSAR';
+            document.getElementById('drone-controls').style.display = 'block';
+            
+            // Desactivar todas las capas al inicio
+            deactivateAllLayers();
+            
+            // Mostrar banner SMART CITY
+            showSmartCityBanner("RECORRIDO DE DRONE INICIADO");
+            
+            // Configurar cámara para modo dron
+            configureDroneCamera();
+            
+            // Actualizar controles
+            updateControlButtons();
+            
+            // Iniciar primer paso después de 2 segundos
+            setTimeout(() => {
+                executeDroneStep(1);
+            }, 2000);
+        }
+
+        function pauseDroneTour() {
+            if (!isTourRunning) return;
+            
+            isPaused = !isPaused;
+            
+            if (isPaused) {
+                clearInterval(droneInterval);
+                document.getElementById('pauseBtn').textContent = '▶️ REANUDAR';
+                document.getElementById('tourStatus').textContent = 'DRONE PAUSADO';
+                document.getElementById('droneIndicator').style.animation = 'none';
+            } else {
+                document.getElementById('pauseBtn').textContent = '⏸️ PAUSAR';
+                document.getElementById('droneIndicator').style.animation = 'pulse 1.5s infinite';
+                resumeDroneFlight();
+            }
+        }
+
+        function resumeDroneFlight() {
+            if (!isTourRunning || !isPaused) return;
+            
+            isPaused = false;
+            startTime = Date.now() - (elapsedTime * 1000);
+            if (typeof continueDronePath === 'function') {
+                continueDronePath();
+            }
+        }
+
+        function stopDroneTour() {
+            if (!isTourRunning) return;
+            
+            isTourRunning = false;
+            isPaused = false;
+            clearInterval(droneInterval);
+            
+            document.getElementById('tourBtn').textContent = '🚁 INICIAR RECORRIDO DRONE';
+            document.getElementById('tourBtn').disabled = false;
+            document.getElementById('tourStatus').textContent = 'DRONE DETENIDO';
+            document.getElementById('droneIndicator').style.display = 'none';
+            document.getElementById('tour-controls').style.display = 'none';
+            
+            // Actualizar controles
+            updateControlButtons();
+        }
+
+        function restartDroneTour() {
+            stopDroneTour();
+            setTimeout(() => {
+                startDroneTour();
+            }, 500);
+        }
+
+        function resetDroneSettings() {
+            DRONE_CONFIG.height = 100;
+            DRONE_CONFIG.pitch = -30;
+            DRONE_CONFIG.duration = 200;
+            DRONE_CONFIG.speedMultiplier = 5;
+            
+            document.getElementById('heightSlider').value = DRONE_CONFIG.height;
+            document.getElementById('pitchSlider').value = Math.abs(DRONE_CONFIG.pitch);
+            document.getElementById('durationSlider').value = DRONE_CONFIG.duration;
+            document.getElementById('speedSlider').value = DRONE_CONFIG.speedMultiplier;
+            
+            updateSliderValues();
+            
+            if (isTourRunning) {
+                configureDroneCamera();
+            }
+        }
+
+        function configureDroneCamera() {
+            // Configurar FOV más amplio para efecto de dron
+            viewer.scene.camera.frustum.fov = Cesium.Math.toRadians(DRONE_CONFIG.fov);
+            
+            // Actualizar información del dron
+            updateDroneInfo();
+        }
+
+        function executeDroneStep(step) {
+            if (!isTourRunning) return;
+            
+            currentTourStep = step;
+            
+            // Actualizar UI del tour
+            updateDroneUI(step);
+            
+            switch(step) {
+                case 1:
+                    document.getElementById('tourStatus').textContent = 'DRONE: COMUNICACIONES';
+                    showSmartCityBanner("DRONE COMUNICACIONES");
+                    activateCategory('comms');
+                    flyDronePath(START_POINT, END_POINT, "Comunicaciones");
+                    break;
+                    
+                case 2:
+                    document.getElementById('tourStatus').textContent = 'DRONE: INFRAESTRUCTURA';
+                    showSmartCityBanner("DRONE INFRAESTRUCTURA");
+                    deactivateCategory('comms');
+                    activateCategory('infra');
+                    // Regresar al punto inicial para iniciar el recorrido de infraestructura
+                    returnToStart(() => {
+                        setTimeout(() => {
+                            flyDronePath(START_POINT, END_POINT, "Infraestructura");
+                        }, 500);
+                    });
+                    break;
+                    
+                case 3:
+                    document.getElementById('tourStatus').textContent = 'DRONE: MOVILIDAD';
+                    showSmartCityBanner("DRONE MOVILIDAD");
+                    deactivateCategory('infra');
+                    activateCategory('mobility');
+                    // Regresar al punto inicial para iniciar el recorrido de movilidad
+                    returnToStart(() => {
+                        setTimeout(() => {
+                            flyDronePath(START_POINT, END_POINT, "Movilidad");
+                        }, 500);
+                    });
+                    break;
+                    
+                case 4:
+                    document.getElementById('tourStatus').textContent = 'VISTA GENERAL';
+                    showSmartCityBanner("VISTA GENERAL SMART CITY");
+                    activateAllLayers();
+                    // Volar a una vista general con ángulo más suave
+                    flyToPosition(
+                        (START_POINT.longitude + END_POINT.longitude) / 2,
+                        (START_POINT.latitude + END_POINT.latitude) / 2,
+                        250, // Mayor altura para vista general
+                        0, 
+                        -45 // Ángulo más suave para vista general
+                    );
+                    
+                    // Tour completado
+                    setTimeout(() => {
+                        document.getElementById('tourStatus').textContent = '¡RECORRIDO COMPLETADO!';
+                        document.getElementById('tourBtn').textContent = 'RECORRIDO COMPLETADO';
+                        document.getElementById('droneIndicator').style.display = 'none';
+                        isTourRunning = false;
+                        
+                        // Ocultar banner después de 3 segundos
+                        setTimeout(() => {
+                            hideSmartCityBanner();
+                        }, 3000);
+                        
+                        // Ocultar controles del tour después de 5 segundos
+                        setTimeout(() => {
+                            document.getElementById('tour-controls').style.display = 'none';
+                            document.getElementById('tourBtn').textContent = '🚁 INICIAR RECORRIDO DRONE';
+                            document.getElementById('tourBtn').disabled = false;
+                        }, 5000);
+                    }, 8000);
+                    return;
+            }
+        }
+
+        function flyDronePath(startPoint, endPoint, category) {
+            clearInterval(droneInterval);
+            
+            startTime = Date.now();
+            const duration = DRONE_CONFIG.duration / (DRONE_CONFIG.speedMultiplier / 5); // Ajustar duración según velocidad
+            const endTime = startTime + duration * 1000;
+            const startLat = startPoint.latitude;
+            const startLon = startPoint.longitude;
+            const endLat = endPoint.latitude;
+            const endLon = endPoint.longitude;
+            
+            // Calcular dirección del recorrido
+            const deltaLat = endLat - startLat;
+            const deltaLon = endLon - startLon;
+            
+            // Calcular heading (dirección) basado en la posición final
+            const heading = Math.atan2(deltaLon, deltaLat) * (180 / Math.PI);
+            
+            // Actualizar posición inicial
+            currentDronePosition = { ...startPoint };
+            currentDronePosition.height = DRONE_CONFIG.height;
+            
+            // Asignar función de continuación al scope global y ejecutar
+            continueDronePath = function() {
+                droneInterval = setInterval(() => {
+                    if (!isTourRunning || isPaused) return;
+                    
+                    const currentTime = Date.now();
+                    elapsedTime = (currentTime - startTime) / 1000;
+                    const progress = Math.min(elapsedTime / duration, 1);
+                    
+                    // Calcular posición actual interpolando
+                    currentDronePosition.latitude = startLat + (deltaLat * progress);
+                    currentDronePosition.longitude = startLon + (deltaLon * progress);
+                    currentDronePosition.height = DRONE_CONFIG.height;
+                    
+                    // Calcular velocidad actual
+                    currentSpeed = calculateSpeed(startPoint, endPoint, duration, progress);
+                    
+                    // Actualizar información en tiempo real
+                    updateDroneInfo();
+                    updateProgressInfo(progress, elapsedTime, duration);
+                    
+                    // Mover la cámara a la posición actual del dron
+                    viewer.camera.setView({
+                        destination: Cesium.Cartesian3.fromDegrees(
+                            currentDronePosition.longitude,
+                            currentDronePosition.latitude,
+                            currentDronePosition.height
+                        ),
+                        orientation: {
+                            heading: Cesium.Math.toRadians(heading),
+                            pitch: Cesium.Math.toRadians(DRONE_CONFIG.pitch),
+                            roll: 0.0
+                        }
+                    });
+                    
+                    // Actualizar barra de progreso
+                    const progressPercent = progress * 100;
+                    document.getElementById('tourProgress').style.width = progressPercent + '%';
+                    
+                    // Si hemos llegado al final
+                    if (progress >= 1) {
+                        clearInterval(droneInterval);
+                        currentSpeed = 0;
+                        elapsedTime = 0;
+                        
+                        // Esperar 1 segundo y pasar al siguiente paso
+                        setTimeout(() => {
+                            executeDroneStep(currentTourStep + 1);
+                        }, 1000);
+                    }
+                }, 50); // Actualizar cada 50ms para animación suave
+            };
+            
+            // Iniciar animación del dron
+            continueDronePath();
+        }
+
+        function calculateSpeed(startPoint, endPoint, duration, progress) {
+            // Calcular distancia total en kilómetros
+            const lat1 = startPoint.latitude * Math.PI / 180;
+            const lon1 = startPoint.longitude * Math.PI / 180;
+            const lat2 = endPoint.latitude * Math.PI / 180;
+            const lon2 = endPoint.longitude * Math.PI / 180;
+            
+            const dLat = lat2 - lat1;
+            const dLon = lon2 - lon1;
+            
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                     Math.cos(lat1) * Math.cos(lat2) *
+                     Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            const distanceKm = 6371 * c; // Radio de la Tierra en km
+            
+            // Velocidad en km/h (distancia / tiempo * 3600 para convertir a horas)
+            return (distanceKm / duration) * 3600 * (DRONE_CONFIG.speedMultiplier / 5);
+        }
+
+        function returnToStart(callback) {
+            // Volar de regreso al punto de inicio rápidamente
+            flyToPosition(
+                START_POINT.longitude,
+                START_POINT.latitude,
+                DRONE_CONFIG.height,
+                180, // Heading opuesto
+                -30 // Ángulo menos pronunciado para el regreso
+            );
+            
+            setTimeout(callback, 2000);
+        }
+
+        function flyToPosition(longitude, latitude, height, heading, pitch) {
+            viewer.camera.flyTo({
+                destination: Cesium.Cartesian3.fromDegrees(longitude, latitude, height),
+                orientation: {
+                    heading: Cesium.Math.toRadians(heading),
+                    pitch: Cesium.Math.toRadians(pitch),
+                    roll: 0.0
+                },
+                duration: 2,
+                complete: function() {
+                    // Configurar cámara con ángulo de dron después del vuelo
+                    viewer.camera.setView({
+                        destination: Cesium.Cartesian3.fromDegrees(longitude, latitude, height),
+                        orientation: {
+                            heading: Cesium.Math.toRadians(heading),
+                            pitch: Cesium.Math.toRadians(DRONE_CONFIG.pitch),
+                            roll: 0.0
+                        }
+                    });
+                }
+            });
+        }
+
+        function updateDroneUI(step) {
+            document.querySelectorAll('.tour-step').forEach(el => {
+                el.classList.remove('active');
+            });
+            document.getElementById(`step${step}`).classList.add('active');
+            
+            // Reiniciar barra de progreso
+            document.getElementById('tourProgress').style.width = '0%';
+        }
+
+        function updateDroneInfo() {
+            document.getElementById('currentHeight').textContent = Math.round(DRONE_CONFIG.height);
+            document.getElementById('currentPitch').textContent = Math.abs(DRONE_CONFIG.pitch);
+            document.getElementById('currentSpeed').textContent = currentSpeed.toFixed(1);
+            document.getElementById('currentTime').textContent = Math.round(elapsedTime);
+            
+            document.getElementById('infoHeight').textContent = Math.round(DRONE_CONFIG.height);
+            document.getElementById('infoSpeed').textContent = currentSpeed.toFixed(1);
+        }
+
+        function updateProgressInfo(progress, elapsed, total) {
+            const remaining = total - elapsed;
+            document.getElementById('currentTime').textContent = Math.round(elapsed);
+        }
+
+        function updateSliderValues() {
+            document.getElementById('heightValue').textContent = DRONE_CONFIG.height + ' m';
+            document.getElementById('pitchValue').textContent = Math.abs(DRONE_CONFIG.pitch) + '°';
+            document.getElementById('durationValue').textContent = DRONE_CONFIG.duration + ' s';
+            
+            const speedLabels = ['Muy Lento', 'Lento', 'Medio-Lento', 'Medio', 'Medio-Rápido', 'Rápido', 'Muy Rápido'];
+            const speedIndex = Math.min(DRONE_CONFIG.speedMultiplier - 1, speedLabels.length - 1);
+            document.getElementById('speedValue').textContent = speedLabels[speedIndex];
+            
+            document.getElementById('infoDuration').textContent = DRONE_CONFIG.duration;
+        }
+
+        function updateControlButtons() {
+            const pauseBtn = document.getElementById('pauseBtn');
+            if (isTourRunning && !isPaused) {
+                pauseBtn.textContent = '⏸️ PAUSAR';
+                pauseBtn.className = 'control-btn btn-active small-btn';
+            } else if (isTourRunning && isPaused) {
+                pauseBtn.textContent = '▶️ REANUDAR';
+                pauseBtn.className = 'control-btn btn-active small-btn';
+            } else {
+                pauseBtn.textContent = '⏸️ PAUSAR';
+                pauseBtn.className = 'control-btn btn-inactive small-btn';
+            }
+        }
+
+        function activateCategory(category) {
+            dataSources.forEach(ds => {
+                if (ds.category === category && ds.button) {
+                    if (!ds.source.show) {
+                        ds.source.show = true;
+                        ds.button.className = 'control-btn btn-active';
+                        activeLayerCount++;
+                        
+                        if (ds.name === "Construcciones") {
+                            const entities = ds.source.entities.values;
+                            for (const entity of entities) {
+                                if (entity.label) {
+                                    entity.label.show = true;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            updateActiveCount();
+        }
+
+        function deactivateCategory(category) {
+            dataSources.forEach(ds => {
+                if (ds.category === category && ds.button) {
+                    if (ds.source.show) {
+                        ds.source.show = false;
+                        ds.button.className = 'control-btn btn-inactive';
+                        activeLayerCount--;
+                        
+                        if (ds.name === "Construcciones") {
+                            const entities = ds.source.entities.values;
+                            for (const entity of entities) {
+                                if (entity.label) {
+                                    entity.label.show = false;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            updateActiveCount();
+        }
+
+        function activateAllLayers() {
+            dataSources.forEach(ds => {
+                if (ds.button && !ds.source.show) {
+                    ds.source.show = true;
+                    ds.button.className = 'control-btn btn-active';
+                    activeLayerCount++;
+                    
+                    if (ds.name === "Construcciones") {
+                        const entities = ds.source.entities.values;
+                        for (const entity of entities) {
+                            if (entity.label) {
+                                entity.label.show = true;
+                            }
+                        }
+                    }
+                }
+            });
+            updateActiveCount();
+        }
+
+        function deactivateAllLayers() {
+            dataSources.forEach(ds => {
+                if (ds.button && ds.source.show) {
+                    ds.source.show = false;
+                    ds.button.className = 'control-btn btn-inactive';
+                    activeLayerCount--;
+                    
+                    if (ds.name === "Construcciones") {
+                        const entities = ds.source.entities.values;
+                        for (const entity of entities) {
+                            if (entity.label) {
+                                entity.label.show = false;
+                            }
+                        }
+                    }
+                }
+            });
+            updateActiveCount();
+        }
+
+        // ===================== BANNER SMART CITY =====================
+        function showSmartCityBanner(subtitle = null) {
+            const banner = document.getElementById('smartCityBanner');
+            if (subtitle) {
+                banner.innerHTML = `<h1>SMART CITY</h1><h2>${subtitle}</h2>`;
+            }
+            banner.style.display = 'block';
+            banner.style.animation = 'fadeIn 0.5s ease';
+            
+            // Ocultar después de 3 segundos (excepto en el paso final)
+            if (currentTourStep < 4) {
+                setTimeout(() => {
+                    hideSmartCityBanner();
+                }, 3000);
+            }
+        }
+
+        function hideSmartCityBanner() {
+            const banner = document.getElementById('smartCityBanner');
+            banner.style.display = 'none';
+        }
+
+        // ===================== FUNCIONES AUXILIARES =====================
+        function updateActiveCount() {
+            document.getElementById('activeCount').textContent = activeLayerCount;
+        }
+
+        // ===================== PRESENTACIÓN INICIAL =====================
+        function startPresentation() {
+            document.getElementById('startBtn').style.display = 'none';
+            document.getElementById('controls').style.display = 'block';
+            document.getElementById('info').style.display = 'block';
+            document.getElementById('drone-controls').style.display = 'block';
+            
+            // Actualizar valores iniciales de sliders
+            updateSliderValues();
+            
+            // Volar al punto inicial del recorrido
+            viewer.camera.flyTo({
+                destination: Cesium.Cartesian3.fromDegrees(
+                    START_POINT.longitude, 
+                    START_POINT.latitude, 
+                    150
+                ),
+                orientation: {
+                    heading: Cesium.Math.toRadians(0),
+                    pitch: Cesium.Math.toRadians(-45),
+                    roll: 0.0
+                },
+                duration: 3,
+                complete: function() {
+                    // Mostrar banner inicial
+                    showSmartCityBanner();
+                    
+                    // Ocultar banner después de 3 segundos
+                    setTimeout(() => {
+                        hideSmartCityBanner();
+                    }, 3000);
+                }
+            });
+        }
+
+        // ===================== EVENT LISTENERS =====================
+        document.getElementById('startBtn').addEventListener('click', startPresentation);
+        document.getElementById('tourBtn').addEventListener('click', startDroneTour);
+        document.getElementById('pauseBtn').addEventListener('click', pauseDroneTour);
+        document.getElementById('restartBtn').addEventListener('click', restartDroneTour);
+        document.getElementById('resetBtn').addEventListener('click', resetDroneSettings);
+        document.getElementById('stopBtn').addEventListener('click', stopDroneTour);
+
+        // Event listeners para sliders
+        document.getElementById('heightSlider').addEventListener('input', function() {
+            DRONE_CONFIG.height = parseInt(this.value);
+            updateSliderValues();
+            if (isTourRunning && !isPaused) {
+                // Actualizar altura en tiempo real
+                currentDronePosition.height = DRONE_CONFIG.height;
+            }
+        });
+
+        document.getElementById('pitchSlider').addEventListener('input', function() {
+            DRONE_CONFIG.pitch = -parseInt(this.value); // Negativo para ángulo hacia abajo
+            updateSliderValues();
+            if (isTourRunning && !isPaused) {
+                // Actualizar cámara en tiempo real
+                const currentView = viewer.camera.positionCartographic;
+                viewer.camera.setView({
+                    destination: Cesium.Cartesian3.fromDegrees(
+                        currentDronePosition.longitude,
+                        currentDronePosition.latitude,
+                        currentDronePosition.height
+                    ),
+                    orientation: {
+                        heading: viewer.camera.heading,
+                        pitch: Cesium.Math.toRadians(DRONE_CONFIG.pitch),
+                        roll: 0.0
+                    }
+                });
+            }
+        });
+
+        document.getElementById('durationSlider').addEventListener('input', function() {
+            DRONE_CONFIG.duration = parseInt(this.value);
+            updateSliderValues();
+        });
+
+        document.getElementById('speedSlider').addEventListener('input', function() {
+            DRONE_CONFIG.speedMultiplier = parseInt(this.value);
+            updateSliderValues();
+        });
+
+        // ===================== INICIALIZACIÓN =====================
+        loadLayers().then(() => {
+            console.log("Capas cargadas correctamente");
+        }).catch(error => {
+            console.error("Error cargando capas:", error);
+        });
+    </script>
+</body>
+</html>
